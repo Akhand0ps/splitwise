@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider     = "prisma-client"
   output       = "../src/generated/prisma"
@@ -14,11 +8,122 @@ datasource db {
   provider = "postgresql"
 }
 
-
-
-model User{
-  id Int  @id @default(autoincrement())
-  email String @unique
-  name String
+enum Role {
+  ADMIN
+  MEMBER
 }
 
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENTAGE
+}
+
+enum SettlementStatus {
+  PENDING
+  COMPLETED
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  name     String
+  phone    String?
+  password String
+
+  groupMembers        GroupMember[]
+  expensesPaid        Expense[]      @relation("PaidBy")
+  splits              ExpenseSplit[]
+  settlementsPaid     Settlement[]   @relation("SettlementsPaid")
+  settlementsReceived Settlement[]   @relation("SettlementsReceived")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Group {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id      Int  @id @default(autoincrement())
+  userId  Int
+  groupId Int
+  role    Role @default(MEMBER)
+
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, groupId])
+  @@map("group_members")
+}
+
+model Expense {
+  id          Int       @id @default(autoincrement())
+  description String?
+  amount      Decimal   @db.Decimal(10, 2)
+  splitType   SplitType @default(EQUAL)
+
+  groupId  Int
+  paidById Int
+
+  group  Group @relation(fields: [groupId], references: [id])
+  paidBy User  @relation("PaidBy", fields: [paidById], references: [id])
+
+  splits ExpenseSplit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("expenses")
+}
+
+model ExpenseSplit {
+  id        Int     @id @default(autoincrement())
+  expenseId Int
+  userId    Int
+  amount    Decimal @db.Decimal(10, 2)
+
+  // for PERCENTAGE split — store the % too, useful for display
+  percentage Decimal? @db.Decimal(5, 2)
+
+  expense Expense @relation(fields: [expenseId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([expenseId, userId])
+  @@map("expense_splits")
+}
+
+model Settlement {
+  id         Int              @id @default(autoincrement())
+  fromUserId Int
+  toUserId   Int
+  groupId    Int?
+  amount     Decimal          @db.Decimal(10, 2)
+  status     SettlementStatus @default(PENDING)
+  note       String?
+
+  fromUser User   @relation("SettlementsPaid", fields: [fromUserId], references: [id])
+  toUser   User   @relation("SettlementsReceived", fields: [toUserId], references: [id])
+  group    Group? @relation(fields: [groupId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settlements")
+}

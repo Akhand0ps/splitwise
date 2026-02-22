@@ -2,6 +2,14 @@
 
 A RESTful API backend for a Splitwise-like expense sharing application built with Node.js, Express, TypeScript, and Prisma ORM.
 
+## Features
+
+- User authentication (register/login) with JWT
+- Create and manage expense groups
+- Add/remove group members with role-based access (Admin/Member)
+- Track expenses with multiple split types (Equal, Exact, Percentage)
+- Balance calculations and settlements
+
 ## Tech Stack
 
 - **Runtime:** Node.js
@@ -9,6 +17,7 @@ A RESTful API backend for a Splitwise-like expense sharing application built wit
 - **Language:** TypeScript
 - **ORM:** Prisma
 - **Database:** PostgreSQL
+- **Authentication:** JWT + bcrypt
 
 ## Prerequisites
 
@@ -21,7 +30,7 @@ A RESTful API backend for a Splitwise-like expense sharing application built wit
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Akhand0ps/splitwise
 cd spl
 ```
 
@@ -38,6 +47,7 @@ Create a `.env` file in the root directory:
 ```env
 DATABASE_URL="postgresql://username:password@localhost:5432/splitwise"
 PORT=3001
+JWT_SECRET="your-secret-key"
 ```
 
 ### 4. Database Setup
@@ -81,9 +91,19 @@ The server will start on `http://localhost:3001` (or the port specified in `.env
 │   ├── app.ts              # Express app configuration
 │   ├── index.ts            # Server entry point
 │   ├── controller/         # Route controllers
+│   │   ├── auth.controller.ts
+│   │   ├── group.controller.ts
+│   │   ├── expense.controller.ts
+│   │   ├── balance.controller.ts
+│   │   └── settlement.controller.ts
 │   ├── routes/             # API routes
-│   ├── middlewares/        # Express middlewares
-│   ├── models/             # Data models
+│   │   ├── auth.routes.ts
+│   │   ├── group.routes.ts
+│   │   ├── expense.routes.ts
+│   │   ├── balance.routes.ts
+│   │   └── settlement.routes.ts
+│   ├── middlewares/
+│   │   └── auth.middleware.ts  # JWT authentication
 │   ├── lib/
 │   │   └── prisma.ts       # Prisma client instance
 │   └── generated/          # Prisma generated client
@@ -102,16 +122,102 @@ The server will start on `http://localhost:3001` (or the port specified in `.env
 ## Database Schema
 
 ### User
+| Field     | Type     | Description              |
+| --------- | -------- | ------------------------ |
+| id        | Int      | Primary key              |
+| email     | String   | Unique email             |
+| name      | String   | User's display name      |
+| phone     | String?  | Optional phone number    |
+| password  | String   | Hashed password          |
+| createdAt | DateTime | Account creation time    |
+| updatedAt | DateTime | Last update time         |
 
-| Field | Type   | Description         |
-| ----- | ------ | ------------------- |
-| id    | Int    | Primary key         |
-| email | String | Unique email        |
-| name  | String | User's display name |
+### Group
+| Field       | Type     | Description           |
+| ----------- | -------- | --------------------- |
+| id          | Int      | Primary key           |
+| name        | String   | Group name            |
+| description | String?  | Optional description  |
+| createdAt   | DateTime | Creation time         |
+| updatedAt   | DateTime | Last update time      |
+
+### GroupMember
+| Field   | Type | Description                  |
+| ------- | ---- | ---------------------------- |
+| id      | Int  | Primary key                  |
+| userId  | Int  | Reference to User            |
+| groupId | Int  | Reference to Group           |
+| role    | Enum | ADMIN or MEMBER              |
+
+### Expense
+| Field       | Type      | Description                         |
+| ----------- | --------- | ----------------------------------- |
+| id          | Int       | Primary key                         |
+| description | String?   | Expense description                 |
+| amount      | Decimal   | Total expense amount                |
+| splitType   | Enum      | EQUAL, EXACT, or PERCENTAGE         |
+| groupId     | Int       | Reference to Group                  |
+| paidById    | Int       | User who paid                       |
+| createdAt   | DateTime  | Creation time                       |
+| updatedAt   | DateTime  | Last update time                    |
+
+### ExpenseSplit
+| Field      | Type     | Description                    |
+| ---------- | -------- | ------------------------------ |
+| id         | Int      | Primary key                    |
+| expenseId  | Int      | Reference to Expense           |
+| userId     | Int      | User in the split              |
+| amount     | Decimal  | Amount owed                    |
+| percentage | Decimal? | Percentage (for PERCENTAGE split) |
+
+### Settlement
+| Field      | Type     | Description                    |
+| ---------- | -------- | ------------------------------ |
+| id         | Int      | Primary key                    |
+| fromUserId | Int      | User paying                    |
+| toUserId   | Int      | User receiving                 |
+| groupId    | Int?     | Optional group reference       |
+| amount     | Decimal  | Settlement amount              |
+| status     | Enum     | PENDING or COMPLETED           |
+| note       | String?  | Optional note                  |
+| createdAt  | DateTime | Creation time                  |
+| updatedAt  | DateTime | Last update time               |
 
 ## API Endpoints
 
-*Documentation coming soon as endpoints are developed.*
+### Authentication
+| Method | Endpoint         | Description              | Auth |
+| ------ | ---------------- | ------------------------ | ---- |
+| POST   | `/api/auth/register` | Register a new user      | No   |
+| POST   | `/api/auth/login`    | Login user               | No   |
+| GET    | `/api/auth/me`       | Get current user profile | Yes  |
+
+### Groups
+| Method | Endpoint                          | Description              | Auth |
+| ------ | --------------------------------- | ------------------------ | ---- |
+| POST   | `/api/groups`                     | Create a new group       | Yes  |
+| GET    | `/api/groups`                     | Get all user's groups    | Yes  |
+| GET    | `/api/groups/:groupId`            | Get group by ID          | Yes  |
+| POST   | `/api/groups/:groupId/members`    | Add member to group      | Yes  |
+| DELETE | `/api/groups/:groupId/members/:userId` | Remove member from group | Yes  |
+| DELETE | `/api/groups/:groupId/leave`      | Leave a group            | Yes  |
+
+### Expenses
+*Coming soon*
+
+### Balances
+*Coming soon*
+
+### Settlements
+*Coming soon*
+
+## Environment Variables
+
+| Variable      | Description                    | Required |
+| ------------- | ------------------------------ | -------- |
+| DATABASE_URL  | PostgreSQL connection string   | Yes      |
+| PORT          | Server port (default: 3001)    | No       |
+| JWT_SECRET    | Secret key for JWT tokens      | Yes      |
 
 ## License
 
