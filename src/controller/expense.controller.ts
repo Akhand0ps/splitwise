@@ -2,7 +2,7 @@ import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import {prisma} from "../lib/prisma.js"
 import { PrismaClient } from "@prisma/client/extension.js";
-
+import { Prisma } from "../generated/prisma/client.js";
 
 const buildSplits = (
   splitType: string,
@@ -10,7 +10,7 @@ const buildSplits = (
   memberIds: number[],
   customSplits?: { userId: number; value: number }[]
    //@ts-ignore
-): { userId: number; amount: PrismaClient.Decimal; percentage?: PrismaClient.Decimal }[] =>{
+): { userId: number; amount: Prisma.Decimal; percentage?: Prisma.Decimal }[] =>{
     
     if(splitType === 'EQUAL'){
        
@@ -20,7 +20,7 @@ const buildSplits = (
 
         return memberIds.map((userId,index)=>({
              userId,
-            amount: new PrismaClient.Decimal(index ===0 ? share+remainder: share)
+            amount: new Prisma.Decimal(index ===0 ? share+remainder: share)
         }))
     }
 
@@ -33,7 +33,7 @@ const buildSplits = (
         }
         return customSplits!.map(s=>({
             userId:s.userId,
-            amount: new PrismaClient.Decimal(s.value)
+            amount: new Prisma.Decimal(s.value)
         }))
 
     }
@@ -46,8 +46,8 @@ const buildSplits = (
         //@ts-ignore
         return customSplits?.map(s=>({
             userId: s.userId,
-            amount: new PrismaClient.Decimal(((s.value)*amount).toFixed(2)),
-            percentage: new PrismaClient.Decimal(s.value)
+            amount: new Prisma.Decimal(((s.value)*amount).toFixed(2)),
+            percentage: new Prisma.Decimal(s.value)
         }))
     }
 
@@ -137,7 +137,7 @@ export const addExpense = async(req:AuthRequest,res:Response)=>{
         const expense = await prisma.expense.create({
             data:{
                 description,
-                amount: new PrismaClient.Decimal(amount),
+                amount: new Prisma.Decimal(amount),
                 groupId: groupId,
                 paidById: req.userId!,
                 splitType,
@@ -153,12 +153,14 @@ export const addExpense = async(req:AuthRequest,res:Response)=>{
                     }
                 },
                 splits:{
-                    user:{
-                        select:{
-                            id:true,
-                            name:true
+                   include:{
+                        user:{
+                            select:{
+                                id:true,
+                                name:true
+                            }
                         }
-                    }
+                   }
                 }
             }
         })
@@ -177,11 +179,11 @@ export const addExpense = async(req:AuthRequest,res:Response)=>{
         return;
     }
 }
-export const getgroupExpenses = async(req:AuthRequest,res:Response)=>{
+export const getGroupExpenses = async(req:AuthRequest,res:Response)=>{
 
     try{
 
-        const groupId = req.params.groupId;
+        const groupId = Number(req.params.groupId);
         const {page =1 ,limit = 20} = req.query;
 
         const memberShip = await prisma.groupMember.findUnique({
@@ -269,8 +271,10 @@ export const getExpenseById = async(req:AuthRequest,res:Response)=>{
                 splits:{
                     include:{
                         user:{
-                            id:true,
-                            name:true
+                            select:{
+                                id:true,
+                                name:true
+                            }
                         }
                     }
                 },
@@ -319,6 +323,70 @@ export const getExpenseById = async(req:AuthRequest,res:Response)=>{
         res.status(500).json({
             success:false,
             message:'INTERNAL SERVER ERROR'
+        })
+        return;
+    }
+}
+export const deleteExpense = async(req:AuthRequest,res:Response)=>{
+
+    try{
+
+        const expenseId = Number(req.params.expenseId)
+        const expense = await prisma.expense.findUnique({
+            where:{
+                id:expenseId
+            }
+        })
+
+        if(!expense){
+            res.status(404).json({
+                success:false,
+                message:'Expense not found'
+            })
+            return;
+        }
+        const memberShip = await prisma.groupMember.findUnique({
+            where:{
+                userId_groupId:{
+                    userId:req.userId!,
+                    groupId:expense.groupId
+                }
+            }
+        })
+        if(!memberShip){
+            res.status(403).json({
+                success:false,
+                message:'You are not a meber of this group'
+            })
+            return;
+        }
+
+        const isAdmin = memberShip.role === "ADMIN"
+        const isPayer = expense.paidById === req.userId
+
+        if(!isAdmin && !isPayer){
+            res.status(403).json({
+                success:false,
+                message:'Only the payer and the admin can delete the expense'
+            })
+            return;
+        }
+
+        //pehle splits delete kr, then expense
+        await prisma.expenseSplit.deleteMany({where:{expenseId}})
+        await prisma.expense.delete({where:{id:expenseId}})
+
+        res.status(200).json({
+            success:true,
+            message:'Expense deleted'
+        })
+        return;
+
+    }catch(err:any){
+        console.error(err.message)
+        res.status(500).json({
+            success:false,
+            message:err.message
         })
         return;
     }

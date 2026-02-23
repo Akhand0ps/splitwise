@@ -115,12 +115,14 @@ export const getGroupById = async(req:AuthRequest,res:Response)=>{
             where: {id:groupId},
             include:{
                 members:{
-                    user:{
-                        select:{
-                            id:true,
-                            name:true,
-                            email:true
-                        }
+                    include:{
+                        user:{
+                            select:{
+                                id:true,
+                                name:true,
+                                email:true
+                            }
+                        } 
                     }
                 },
                 expenses:{
@@ -185,7 +187,7 @@ export const addMember = async(req:AuthRequest,res:Response)=>{
         })
 
 
-        if(!membership || membership.role !== "AMDIN"){
+        if(!membership || membership.role !== "ADMIN"){
             res.status(403).json({
                 success:false,
                 message:"Only admins can add members"
