@@ -37,4 +37,144 @@ const buildSplits = (
         }))
 
     }
+    if(splitType === "PERCENTAGE"){
+        //@ts-ignore
+        const percentageTotal:number = customSplits?.reduce((sum,s)=> sum + s.value,0);
+        if(Math.abs(percentageTotal - amount) > 0.01){
+            throw new Error('Amount must add up to original split amount')
+        }
+        //@ts-ignore
+        return customSplits?.map(s=>({
+            userId: s.userId,
+            amount: new PrismaClient.Decimal(((s.value)*amount).toFixed(2)),
+            percentage: new PrismaClient.Decimal(s.value)
+        }))
+    }
+
+    throw new Error('Invalid split Type')
 }
+
+export const addExpense = async(req:AuthRequest,res:Response)=>{
+    try{
+
+        const {description,amount,groupId,splitType ="EQUAL",customSplits} = req.body;
+        if(!amount || !groupId){
+            res.status(400).json({
+                success:false,
+                message:'amount and groupId are required'
+            })
+            return;
+        }
+
+        if(amount <= 0){
+            res.status(400).json({
+                success:false,
+                message:'Amount must be greater than 0'
+            })
+            return;
+        }
+
+        const memberShip = await prisma.groupMember.findUnique({
+            where:{
+                userId_groupId:{
+                    userId: req.userId!,
+                    groupId
+                }
+            }
+        })
+
+        if(!memberShip){
+            res.status(403).json({
+                success:false,
+                message:'Only group member is allowed'
+            })
+            return;
+        }
+
+        //ab sare group memmbers nikal
+
+        const groupmembers = await prisma.groupMember.findMany({
+            where:{
+                groupId
+            }
+        })
+        //@ts-ignore
+        
+        const memberIds = groupmembers.map((m)=>{
+            return m.userId
+        })
+
+        if(splitType !== "EQUAL" && customSplits){
+            const splitUserIDs:number[] = customSplits.map((s:{
+                userId:number,
+                value:number
+            })=>{
+                s.userId
+            })
+
+            const allMembers = splitUserIDs.every((id:number)=>memberIds.includes(id))
+            if(!allMembers){
+                res.status(400).json({
+                    success:false,
+                    message:'split contains non-members. mtlb ye group ke member nhi hai.check kr wapise'
+                })
+                return;
+            }
+        }
+
+        let splits;
+
+        try{
+            splits = buildSplits(splitType,Number(amount),memberIds,customSplits)
+        }catch(err:any){
+            console.log(err.message)
+            res.status(400).json({
+                success:false,
+                message: err.message
+            })
+            return;
+        }
+        const expense = await prisma.expense.create({
+            data:{
+                description,
+                amount: new PrismaClient.Decimal(amount),
+                groupId: groupId,
+                paidById: req.userId!,
+                splitType,
+                splits:{
+                    create:splits
+                }
+            },
+            include:{
+                paidBy:{
+                    select:{
+                        id:true,
+                        name:true
+                    }
+                },
+                splits:{
+                    user:{
+                        select:{
+                            id:true,
+                            name:true
+                        }
+                    }
+                }
+            }
+        })
+
+        res.status(201).json({
+            success:true,
+            expense
+        })
+        return;
+    }catch(err){
+        console.error(err)
+        res.status(500).json({
+            success:false,
+            message:'INTERNAL SERVER ERROR'
+        })
+        return;
+    }
+}
+
