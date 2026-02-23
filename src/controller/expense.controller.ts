@@ -177,4 +177,74 @@ export const addExpense = async(req:AuthRequest,res:Response)=>{
         return;
     }
 }
+export const getgroupExpenses = async(req:AuthRequest,res:Response)=>{
 
+    try{
+
+        const groupId = req.params.groupId;
+        const {page =1 ,limit = 20} = req.query;
+
+        const memberShip = await prisma.groupMember.findUnique({
+            where:{
+                userId_groupId:{
+                    userId: req.userId!,
+                    groupId
+                }
+            }
+        })
+
+        if(!memberShip){
+            res.status(403).json({
+                success:false,
+                message:'You are not a member of this group'
+            })
+            return;
+        }
+        const expenses = await prisma.expense.findMany({
+            where:{groupId},
+            orderBy:{createdAt:"desc"},
+            skip:(Number(page)-1) * Number(limit),
+            take: Number(limit),
+            include:{
+                paidBy:{
+                    select:{
+                        id:true,
+                        name:true
+                    }
+                },
+                splits:{
+                    include:{
+                        user:{
+                            select:{
+                                id:true,
+                                name:true
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        const total = await prisma.expense.count({
+            where:{groupId}
+        })
+        
+        res.status(200).json({
+            expenses,
+            pagination:{
+                page:Number(page),
+                limit:Number(limit),
+                total,
+                pages:Math.ceil(total/Number(limit))
+            }
+        })
+        return;
+    }catch(err){
+        console.error(err)
+        res.status(500).json({
+            success:false,
+            message:'INTERNAL SERVER ERROR'
+        })
+        return;
+    }
+}
