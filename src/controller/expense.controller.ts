@@ -248,3 +248,78 @@ export const getgroupExpenses = async(req:AuthRequest,res:Response)=>{
         return;
     }
 }
+export const getExpenseById = async(req:AuthRequest,res:Response)=>{
+
+    try{
+        
+
+        const expenseId = Number(req.params.expenseId)
+
+        const expense = await prisma.expense.findUnique({
+            where:{
+                id:expenseId
+            },
+            include:{
+                paidBy:{
+                    select:{
+                        id:true,
+                        name:true
+                    }
+                },
+                splits:{
+                    include:{
+                        user:{
+                            id:true,
+                            name:true
+                        }
+                    }
+                },
+                group:{
+                    select:{
+                        id:true,
+                        name:true
+                    }
+                }
+            }
+        })
+
+        if(!expense){
+            res.status(404).json({
+                success:false,
+                message:'Expense not found'
+            })
+            return;
+        }
+
+        const memberShip = await prisma.groupMember.findUnique({
+            where:{
+                userId_groupId:{
+                    userId: req.userId!,
+                    groupId: expense.groupId
+                }
+            }
+        })
+
+        if(!memberShip){
+            res.status(403).json({
+                success:false,
+                message:'you are not a member of this group. GET OUT or ask admin to add you'
+            })
+            return;
+        }
+
+        res.status(200).json({
+            success:true,
+            expense
+        })
+        return
+
+    }catch(err){
+        console.error(err)
+        res.status(500).json({
+            success:false,
+            message:'INTERNAL SERVER ERROR'
+        })
+        return;
+    }
+}
