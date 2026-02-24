@@ -151,13 +151,13 @@ Admin panel at `http://localhost:8001/admin`
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/register` | No | Register new user |
-| POST | `/api/auth/login` | No | Login, returns JWT |
-| GET | `/api/auth/me` | Yes | Get current user |
+| POST | `/api/v1/auth/register` | No | Register new user |
+| POST | `/api/v1/auth/login` | No | Login, returns JWT |
+| GET | `/api/v1/auth/me` | Yes | Get current user |
 
 **Register**
 ```json
-POST /api/auth/register
+POST /api/v1/auth/register
 {
   "name": "Rahul",
   "email": "rahul@example.com",
@@ -168,7 +168,7 @@ POST /api/auth/register
 
 **Login**
 ```json
-POST /api/auth/login
+POST /api/v1/auth/login
 {
   "email": "rahul@example.com",
   "password": "secret123"
@@ -182,18 +182,20 @@ Returns: `{ user, token }`
 
 ### Groups
 
+All group routes require auth.
+
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/groups` | Create a group |
-| GET | `/api/groups` | Get my groups |
-| GET | `/api/groups/:groupId` | Get group details |
-| POST | `/api/groups/:groupId/members` | Add member by email (admin only) |
-| DELETE | `/api/groups/:groupId/members/:userId` | Remove member (admin only) |
-| DELETE | `/api/groups/:groupId/leave` | Leave a group |
+| POST | `/api/v1/groups` | Create a group |
+| GET | `/api/v1/groups` | Get my groups |
+| GET | `/api/v1/groups/:groupId` | Get group details |
+| POST | `/api/v1/groups/:groupId/members` | Add member by email (admin only) |
+| DELETE | `/api/v1/groups/:groupId/members/:userId` | Remove member (admin only) |
+| DELETE | `/api/v1/groups/:groupId/leave` | Leave a group |
 
 **Create Group**
 ```json
-POST /api/groups
+POST /api/v1/groups
 {
   "name": "Goa Trip",
   "description": "Trip expenses"
@@ -202,7 +204,7 @@ POST /api/groups
 
 **Add Member**
 ```json
-POST /api/groups/1/members
+POST /api/v1/groups/1/members
 {
   "email": "priya@example.com"
 }
@@ -212,16 +214,20 @@ POST /api/groups/1/members
 
 ### Expenses
 
+All expense routes require auth.
+
+> **Note:** `getGroupExpenses`, `getExpenseById`, and `deleteExpense` are currently registered as `POST` in the router (see `expense.routes.ts`). The intended methods are shown below — fix the route definitions if needed.
+
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/expenses` | Add an expense |
-| GET | `/api/expenses/group/:groupId` | Get group expenses (paginated) |
-| GET | `/api/expenses/:expenseId` | Get single expense |
-| DELETE | `/api/expenses/:expenseId` | Delete expense (payer or admin) |
+| POST | `/api/v1/expenses` | Add an expense |
+| POST | `/api/v1/expenses/group/:groupId` | Get group expenses (registered as POST — should be GET) |
+| POST | `/api/v1/expenses/:expenseId` | Get single expense (registered as POST — should be GET) |
+| POST | `/api/v1/expenses/:expenseID` | Delete expense (registered as POST — should be DELETE; note param typo `expenseID`) |
 
 **Add Expense — Equal Split**
 ```json
-POST /api/expenses
+POST /api/v1/expenses
 {
   "description": "Hotel",
   "amount": 900,
@@ -232,6 +238,7 @@ POST /api/expenses
 
 **Add Expense — Exact Split**
 ```json
+POST /api/v1/expenses
 {
   "description": "Dinner",
   "amount": 500,
@@ -246,6 +253,7 @@ POST /api/expenses
 
 **Add Expense — Percentage Split**
 ```json
+POST /api/v1/expenses
 {
   "description": "Cab",
   "amount": 500,
@@ -258,21 +266,21 @@ POST /api/expenses
 }
 ```
 
-**Get Expenses** supports pagination: `?page=1&limit=20`
-
 ---
 
 ### Settlements
 
+All settlement routes require auth.
+
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/settlements` | Record a payment |
-| GET | `/api/settlements/group/:groupId` | Get group settlements |
-| PATCH | `/api/settlements/:settlementId/complete` | Receiver confirms payment |
+| POST | `/api/v1/settlements` | Record a payment |
+| GET | `/api/v1/settlements/group/:groupId` | Get group settlements |
+| PATCH | `/api/v1/settlements/:settlementId/complete` | Receiver confirms payment |
 
 **Create Settlement**
 ```json
-POST /api/settlements
+POST /api/v1/settlements
 {
   "toUserId": 1,
   "groupId": 1,
@@ -287,10 +295,12 @@ POST /api/settlements
 
 ### Balances
 
+All balance routes require auth.
+
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/balances/group/:groupId` | Group balances + suggested transactions |
-| GET | `/api/balances/me` | My net balance across all groups |
+| GET | `/api/v1/balances/group/:groupId` | Group balances + suggested transactions |
+| GET | `/api/v1/balances/me` | My net balance across all groups |
 
 **Group Balance Response**
 ```json

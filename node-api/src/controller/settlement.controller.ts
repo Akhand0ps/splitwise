@@ -7,7 +7,9 @@ export const createSettlement = async(req:AuthRequest,res:Response)=>{
     
     try{
 
-        const {toUser,groupId,amount,note} = req.body;
+        const { amount, note } = req.body;
+        const toUser = Number(req.body.toUser);
+        const groupId = req.body.groupId ? Number(req.body.groupId) : null;
         if(!toUser || !amount){
             res.status(400).json({
                 message:'toUserId and amount is required'
@@ -60,10 +62,9 @@ export const createSettlement = async(req:AuthRequest,res:Response)=>{
 
         //yaha settle kr
         const settlement = await prisma.settlement.create({
-            //@ts-ignore
             data:{
                 fromUserId:req.userId!,
-                toUser,
+                toUserId: toUser,
                 groupId: groupId || null,
                 amount: parseFloat(Number(amount).toFixed(2)),
                 note: note || null,
@@ -203,9 +204,8 @@ export const completSettlement = async(req:AuthRequest,res:Response)=>{
             return;
         }
 
-        const updated = await prisma.settlement.findUnique({
+        const updated = await prisma.settlement.update({
             where:{id:settlementId},
-            //@ts-ignore
             data:{status:"COMPLETED"},
             include:{
                 fromUser:{select:{id:true,name:true}},
@@ -217,6 +217,38 @@ export const completSettlement = async(req:AuthRequest,res:Response)=>{
         res.status(200).json({
             success:true,
             settlement:updated
+        })
+        return;
+    }catch(err:any){
+        console.error(err.message);
+        res.status(500).json({
+            success:false,
+            error:err.message
+        })
+        return;
+    }
+}
+
+export const getUserSettlements = async(req:AuthRequest,res:Response)=>{
+    try{
+        const settlements = await prisma.settlement.findMany({
+            where:{
+                OR:[
+                    {fromUserId: req.userId!},
+                    {toUserId: req.userId!}
+                ],
+                status: "PENDING"
+            },
+            orderBy:{createdAt:"desc"},
+            include:{
+                fromUser:{select:{id:true,name:true}},
+                toUser:{select:{id:true,name:true}},
+                group:{select:{id:true,name:true}}
+            }
+        })
+        res.status(200).json({
+            success:true,
+            settlements
         })
         return;
     }catch(err:any){

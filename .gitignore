@@ -14,6 +14,9 @@ django-admin/.env
 django-admin/db.sqlite3
 django-admin/staticfiles/
 
+
+spl-frontend/node_modules
+
 # ===== LOGS =====
 *.log
 npm-debug.log*

@@ -57,7 +57,8 @@ const buildSplits = (
 export const addExpense = async(req:AuthRequest,res:Response)=>{
     try{
 
-        const {description,amount,groupId,splitType ="EQUAL",customSplits} = req.body;
+        const {description,amount,splitType ="EQUAL",customSplits} = req.body;
+        const groupId = Number(req.body.groupId);
         if(!amount || !groupId){
             res.status(400).json({
                 success:false,
@@ -170,11 +171,11 @@ export const addExpense = async(req:AuthRequest,res:Response)=>{
             expense
         })
         return;
-    }catch(err){
+    }catch(err:any){
         console.error(err)
         res.status(500).json({
             success:false,
-            message:'INTERNAL SERVER ERROR'
+            message:err.message
         })
         return;
     }
