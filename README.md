@@ -8,7 +8,9 @@ A RESTful API backend for a Splitwise-like expense sharing application built wit
 - Create and manage expense groups
 - Add/remove group members with role-based access (Admin/Member)
 - Track expenses with multiple split types (Equal, Exact, Percentage)
-- Balance calculations and settlements
+- Smart balance calculations across groups
+- Debt simplification algorithm for minimal transactions
+- Settlement tracking with status management (Pending/Completed)
 
 ## Tech Stack
 
@@ -104,6 +106,8 @@ The server will start on `http://localhost:3001` (or the port specified in `.env
 │   │   └── settlement.routes.ts
 │   ├── middlewares/
 │   │   └── auth.middleware.ts  # JWT authentication
+│   ├── utils/
+│   │   └── balance.ts      # Balance calculation & debt simplification
 │   ├── lib/
 │   │   └── prisma.ts       # Prisma client instance
 │   └── generated/          # Prisma generated client
@@ -203,13 +207,25 @@ The server will start on `http://localhost:3001` (or the port specified in `.env
 | DELETE | `/api/groups/:groupId/leave`      | Leave a group            | Yes  |
 
 ### Expenses
-*Coming soon*
+| Method | Endpoint                      | Description                | Auth |
+| ------ | ----------------------------- | -------------------------- | ---- |
+| POST   | `/api/expenses`               | Add a new expense          | Yes  |
+| POST   | `/api/expenses/group/:groupId`| Get all expenses in group  | Yes  |
+| POST   | `/api/expenses/:expenseId`    | Get expense by ID          | Yes  |
+| DELETE | `/api/expenses/:expenseId`    | Delete an expense          | Yes  |
 
 ### Balances
-*Coming soon*
+| Method | Endpoint                      | Description                     | Auth |
+| ------ | ----------------------------- | ------------------------------- | ---- |
+| GET    | `/api/balances/group/:groupId`| Get balances for a group        | Yes  |
+| GET    | `/api/balances/me`            | Get current user's all balances | Yes  |
 
 ### Settlements
-*Coming soon*
+| Method | Endpoint                              | Description              | Auth |
+| ------ | ------------------------------------- | ------------------------ | ---- |
+| POST   | `/api/settlements`                    | Create a settlement      | Yes  |
+| GET    | `/api/settlements/group/:groupId`     | Get settlements in group | Yes  |
+| PATCH  | `/api/settlements/:settlementId/complete` | Mark settlement complete | Yes  |
 
 ## Environment Variables
 

@@ -1,35 +1,24 @@
-# Dependencies
-node_modules/
-.pnp
-.pnp.cjs
+# ===== NODE-API =====
+node-api/node_modules/
+node-api/dist/
+node-api/build/
+node-api/.env
+node-api/src/generated/
 
-# Testing/Coverage
-coverage/
+# ===== DJANGO-ADMIN =====
+django-admin/venv/
+django-admin/__pycache__/
+django-admin/**/__pycache__/
+django-admin/*.pyc
+django-admin/.env
+django-admin/db.sqlite3
+django-admin/staticfiles/
 
-# Production/Build
-dist/
-build/
-.next/
-.nuxt/
-
-# Environment
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-lerna-debug.log*
+# ===== LOGS =====
 *.log
+npm-debug.log*
 
-# IDEs/OS
-.vscode/
-.idea/
+# ===== OS =====
 .DS_Store
-
-/src/generated/prisma
-
-/src/generated/prisma
+.idea/
+.vscode/
