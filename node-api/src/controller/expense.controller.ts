@@ -40,8 +40,8 @@ const buildSplits = (
     if(splitType === "PERCENTAGE"){
         //@ts-ignore
         const percentageTotal:number = customSplits?.reduce((sum,s)=> sum + s.value,0);
-        if(Math.abs(percentageTotal - amount) > 0.01){
-            throw new Error('Amount must add up to original split amount')
+        if(Math.abs(percentageTotal - 100) > 0.01){
+            throw new Error('Percentages must add up to 100')
         }
         //@ts-ignore
         return customSplits?.map(s=>({
