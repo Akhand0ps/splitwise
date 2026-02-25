@@ -110,10 +110,11 @@ export const addExpense = async(req:AuthRequest,res:Response)=>{
                 userId:number,
                 value:number
             })=>{
-                s.userId
+                return s.userId
             })
 
             const allMembers = splitUserIDs.every((id:number)=>memberIds.includes(id))
+            console.log(allMembers)
             if(!allMembers){
                 res.status(400).json({
                     success:false,
