@@ -37,7 +37,7 @@ def summary(request):
 
     return JsonResponse({
         'users':total_users,
-        'groups':total_users,
+        'groups':total_groups,
         'expenses':{
             'count':total_expenses,
             'total_amount':float(total_amount),
@@ -91,7 +91,7 @@ def top_spenders(request):
 def group_activity(request):
     #sbse jyda active grup konsa hai , expense coutn and total amoutn jyda hoga
 
-    limit = int(request.GET.get('limit',0))
+    limit = int(request.GET.get('limit',10))
     groups = Group.objects.annotate(
         expense_count = Count('expense'),
         total_amount = Sum('expense__amount'),

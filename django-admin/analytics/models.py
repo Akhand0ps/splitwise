@@ -11,7 +11,7 @@ class User(models.Model):
     updatedAt = models.DateTimeField()
 
     class Meta:
-        managed = False,
+        managed = False
         db_table = 'users'
     
     def __str__(self):
@@ -25,7 +25,7 @@ class Group(models.Model):
     updatedAt = models.DateField()
 
     class Meta:
-        managed = False,
+        managed = False
         db_table = 'groups'
     
     def __str__(self):
